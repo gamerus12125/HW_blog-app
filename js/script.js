@@ -1,93 +1,125 @@
 "use strict";
-const url = "https://web-app-papatomatoe.herokuapp.com/posts";
-const mainMenu = document.querySelector(".header__menu");
-const burgerButton = document.querySelector(".header__button");
-const postsError = document.querySelector(".posts__error");
-const inputTitle = document.querySelector(".add-post__input");
-const addPostButton = document.querySelector(".add-post__button");
-const postContent = document.querySelector(".add-post__content");
-const list = document.querySelector(".posts__list");
 
-const openMenu = () => {
-  if (burgerButton.classList.contains("header__button--active")) {
-    mainMenu.style.display = "none";
-    burgerButton.classList.remove("header__button--active");
-    burgerButton.classList.add("header__button");
-  } else {
-    mainMenu.style.display = "block";
-    burgerButton.classList.remove("header__button");
-    burgerButton.classList.add("header__button--active");
+const URL = "https://web-app-papatomatoe.herokuapp.com";
+
+const menuButton = document.querySelector(".header__button");
+const menu = document.querySelector(".header__menu");
+const postsSection = document.querySelector(".posts");
+const loader = postsSection.querySelector(".posts__loader");
+const form = document.querySelector(".add-post__form");
+const postTitle = form.querySelector(".add-post__input");
+const postContent = form.querySelector(".add-post__content");
+const submitButton = form.querySelector(".add-post__button");
+const postsError = form.querySelector(".posts__error");
+const addPostError = document.querySelector(".add-post__error");
+
+const fragment = new DocumentFragment();
+
+menuButton.addEventListener("click", () => {
+  menuButton.classList.toggle("header__button--active");
+  menu.classList.toggle("header__menu--active");
+});
+
+const getPostMarkup = ({ title, content, createDate }) => {
+  const li = document.createElement("li");
+  const h3 = document.createElement("h3");
+  const p = document.createElement("p");
+  const time = document.createElement("time");
+
+  h3.innerText = title;
+  h3.classList.add("posts__title");
+  p.innerText = content;
+  p.classList.add("posts__content");
+
+  time.innerText = new Date(createDate).toLocaleDateString();
+  time.classList.add("posts__date");
+  time.setAttribute("datetime", createDate);
+
+  li.classList.add("posts__item");
+
+  li.append(h3);
+  li.append(p);
+  li.append(time);
+
+  return li;
+};
+
+const getPostsFromServer = async () => {
+  const postList = document.querySelector(".posts__list");
+  if (postList) {
+    postList.remove();
+    postsSection.append(loader);
   }
-};
-burgerButton.addEventListener("click", openMenu);
 
-const checkForm = () => {
-  if (inputTitle.value == "" || postContent.value == "") {
-    if (addPostButton.hasAttribute("disabled")) {
-    } else {
-      addPostButton.setAttribute("disabled", "disabled");
-    }
-  } else {
-    addPostButton.removeAttribute("disabled");
-  }
-};
-
-const createPost = () => {
-  const item = document.createElement("li");
-  const title = document.createElement("h3");
-  const content = document.createElement("p");
-  const date = document.createElement("date");
-  title.innerText = inputTitle.value;
-  content.innerText = postContent.value;
-  date.innerText = new Date();
-  item.classList.add("posts__item");
-  title.classList.add("posts__title");
-  content.classList.add("posts__content");
-  date.classList.add("posts__date");
-  list.prepend(item);
-  item.append(title, content, date);
-  inputTitle.value = "";
-  postContent.value = "";
-  addPostButton.setAttribute("disabled", "disabled");
-};
-const generatePosts = (post) => {
-  const time = new Date(post.createDate);
-  const item = document.createElement("li");
-  const title = document.createElement("h3");
-  const content = document.createElement("p");
-  const date = document.createElement("date");
-  const loader = document.querySelector(".posts__loader");
-  loader.classList.add("visually-hidden");
-  list.classList.remove("visually-hidden");
-  title.innerText = post.title;
-  content.innerText = post.content;
-  date.innerText = time;
-  item.classList.add("posts__item");
-  title.classList.add("posts__title");
-  content.classList.add("posts__content");
-  date.classList.add("posts__date");
-  date.setAttribute("datetime", time);
-  list.append(item);
-  item.append(title, content, date);
-};
-
-const GetPosts = async (url) => {
   try {
-    let response = await fetch(url);
-    let posts = await response.json();
-    console.log(posts);
-    posts.forEach((posts) => {
-      generatePosts(posts);
+    const response = await fetch(`${URL}/posts`);
+    const posts = await response.json();
+
+    posts.reverse().forEach((post) => {
+      const postMarkup = getPostMarkup(post);
+      fragment.append(postMarkup);
     });
+
+    const ul = document.createElement("ul");
+    ul.classList.add("posts__list");
+    ul.append(fragment);
+
+    loader.remove();
+    postsSection.append(ul);
   } catch (error) {
     postsError.classList.remove("visually-hidden");
     console.error(error);
   }
 };
 
-GetPosts(url);
-inputTitle.addEventListener("keyup", checkForm);
-postContent.addEventListener("keyup", checkForm);
-inputTitle.addEventListener("keydown", checkForm);
-postContent.addEventListener("keydown", checkForm);
-addPostButton.addEventListener("click", createPost);
+getPostsFromServer();
+
+const checkFormFields = () => {
+  submitButton.disabled = !postTitle.value || !postContent.value;
+};
+
+postTitle.addEventListener("input", checkFormFields);
+postContent.addEventListener("input", checkFormFields);
+
+const hideError = () =>
+  addPostError.classList.remove("add-post__error--active");
+
+const sendPostToServer = async (e) => {
+  e.preventDefault();
+  submitButton.innerText = "saving";
+  submitButton.disabled;
+
+  if (!postTitle.value || !postContent.value) return;
+
+  const body = {
+    title: postTitle.value,
+    content: postContent.value,
+    sectionId: 1,
+  };
+  const response = await fetch(`${URL}/posts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const post = await response.json();
+  if (response.ok) {
+    const postMarkup = getPostMarkup(post);
+    const postList = document.querySelector(".posts__list");
+    postList.prepend(postMarkup);
+    window.scrollTo({ top: 0 });
+
+    postTitle.value = "";
+    postContent.value = "";
+    checkFormFields();
+    submitButton.innerText = "Add post";
+    submitButton.disabled;
+  } else {
+    addPostError.classList.add("add-post__error--active");
+    setTimeout(hideError, 3000);
+  }
+};
+
+form.addEventListener("submit", sendPostToServer);

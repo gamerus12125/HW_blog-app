@@ -35,8 +35,7 @@
       <section class="posts">
         <h2 class="posts__heading">Recent posts</h2>
         <p class="posts__loader">Loading...</p>
-        <p class="visually-hidden posts__error">Something went wrong...</p>
-        <ul class="visually-hidden posts__list"></ul>
+        <p class="posts__error visually-hidden">Something went wrong...</p>
       </section>
       <section class="add-post">
         <h2 class="add-post__title">Add Post</h2>
@@ -58,14 +57,14 @@
               placeholder="add post content..."
             ></textarea>
           </label>
-          <button class="add-post__button" type="button" disabled>
+          <button class="add-post__button" type="submit" disabled>
             Add post
           </button>
         </form>
-        <!-- <div class="add-post__error">
-        <p>Something went wrong...</p>
-        <p>Please, try again later.</p>
-      </div> -->
+        <div class="add-post__error">
+          <p>Something went wrong...</p>
+          <p>Please, try again later.</p>
+        </div>
       </section>
     </main>
     <footer class="footer">
