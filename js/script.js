@@ -10,7 +10,7 @@ const form = document.querySelector(".add-post__form");
 const postTitle = form.querySelector(".add-post__input");
 const postContent = form.querySelector(".add-post__content");
 const submitButton = form.querySelector(".add-post__button");
-const postsError = form.querySelector(".posts__error");
+const postsError = document.querySelector(".posts__error");
 const addPostError = document.querySelector(".add-post__error");
 
 const fragment = new DocumentFragment();
@@ -64,11 +64,12 @@ const getPostsFromServer = async () => {
     ul.classList.add("posts__list");
     ul.append(fragment);
 
-    loader.remove();
     postsSection.append(ul);
   } catch (error) {
     postsError.classList.remove("visually-hidden");
     console.error(error);
+  } finally {
+    loader.remove();
   }
 };
 
@@ -96,30 +97,36 @@ const sendPostToServer = async (e) => {
     content: postContent.value,
     sectionId: 1,
   };
-  const response = await fetch(`${URL}/posts`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+
+  try {
+    const response = await fetch(`${URL}/post`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (response.ok) {
+      const postMarkup = getPostMarkup(post);
+      const postList = document.querySelector(".posts__list");
+      postList.prepend(postMarkup);
+      window.scrollTo({ top: 0 });
+
+      postTitle.value = "";
+      postContent.value = "";
+      checkFormFields();
+      submitButton.innerText = "Add post";
+      submitButton.disabled;
+    } else {
+      addPostError.classList.add("add-post__error--active");
+      setTimeout(hideError, 3000);
+      submitButton.innerText = "Add post";
+    }
+  } catch (error) {
+    console.log(error);
+  }
 
   const post = await response.json();
-  if (response.ok) {
-    const postMarkup = getPostMarkup(post);
-    const postList = document.querySelector(".posts__list");
-    postList.prepend(postMarkup);
-    window.scrollTo({ top: 0 });
-
-    postTitle.value = "";
-    postContent.value = "";
-    checkFormFields();
-    submitButton.innerText = "Add post";
-    submitButton.disabled;
-  } else {
-    addPostError.classList.add("add-post__error--active");
-    setTimeout(hideError, 3000);
-  }
 };
 
 form.addEventListener("submit", sendPostToServer);
